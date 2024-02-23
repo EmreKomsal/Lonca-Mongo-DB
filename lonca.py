@@ -2,7 +2,7 @@ import pymongo
 import xml.etree.ElementTree as ET
 import re
 import pprint
-
+import html
 
 class MongoDBClient:
     def __init__(self, host="localhost", port=27017):
@@ -99,11 +99,12 @@ class XMLParser:
             return None
         
     def extract_info(self, text, info_type): # Extract the information from the description
-        pattern = rf"<strong>{info_type}:</strong>(.*?)<"   # Define the pattern to search for
-        match = re.search(pattern, text)    # Search for the pattern in the description
-        return match.group(1).strip() if match else None    # Return the extracted information if found, otherwise return None
-
-    
+        pattern = rf"<strong>{info_type}:</strong>(.*?)<" # Define the pattern to search for
+        match = re.search(pattern, text)   # Search for the pattern in the description
+        if match:   # If the pattern is found
+            return html.unescape(match.group(1).strip())    # Return the extracted information
+        else:
+            return None  # Return None if the pattern is not found
 
 class ProductImporter:
     def __init__(self, file_path, db_client): # Initialize the ProductImporter class
