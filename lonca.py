@@ -31,19 +31,19 @@ class MongoDBClient:
     def update_data(self, data):
         try:
             for product_data in data:
-                existing_product = self.col.find_one({"ProductID": product_data["ProductID"]})   # Check if the product already exists in the collection
+                existing_product = self.col.find_one({"stock_code": product_data["stock_code"]})   # Check if the product already exists in the collection
                 if existing_product:    # If the product already exists
-                    self.col.update_one({"ProductID": product_data["ProductID"]}, {"$set": product_data})
-                    print(f"Product {product_data['ProductID']} updated.")
+                    self.col.update_one({"stock_code": product_data["stock_code"]}, {"$set": product_data})
+                    print(f"Product {product_data['stock_code']} updated.")
                 else:   # If the product does not exist
-                    print(f"Product {product_data['ProductID']} does not exist in the collection.")
+                    print(f"Product {product_data['stock_code']} does not exist in the collection.")
                     self.import_data([product_data])   # Import the new product to the collection
         except pymongo.errors.BulkWriteError as e:
             print(f"Error updating data: {e.details['writeErrors']}")
     
     def print_products(self):
         for product in self.col.find():    # Find all the products in the collection
-            print(product["ProductID"])      # Print the product data
+            print(product["stock_code"])      # Print the product data
 
 class XMLParser:
     def __init__(self, file_path):  # Initialize the XMLParser class
@@ -54,20 +54,38 @@ class XMLParser:
     
     def parse(self):
         try:
-            self.tree = ET.parse(self.file_path)     # Parse the XML file
-            self.products = self.tree.findall(".//Product")   # Find all the products in the XML file
+            self.tree = ET.parse(self.file_path)
+            self.products = self.tree.findall(".//Product")
+
             for p in self.products:
+                images = [img.get("Path") for img in p.findall("./Images/Image")]
+                details = {detail.get("Name"): detail.get("Value") for detail in p.findall("./ProductDetails/ProductDetail")}
+
                 product_data = {
-                    "ProductID": p.attrib["ProductId"],     # Get the product ID
-                    "ProductName": p.attrib["Name"],       # Get the product name
-                    "Images": [img.attrib["Path"] for img in p.findall("./Images/Image")],  # Get the images
-                    "Details": {detail.attrib["Name"]: detail.attrib["Value"] for detail in p.findall("./ProductDetails/ProductDetail")},   # Get the product details
-                    "Description": p.find("./Description").text     # Get the product description
+                    "stock_code": p.get("ProductId"),
+                    "color": [details.get("Color")],
+                    "discounted_price": float(details.get("DiscountedPrice").replace(",", ".")) if details.get("DiscountedPrice") else None,
+                    "images": images,
+                    "is_discounted": details.get("DiscountedPrice") is not None and float(details.get("DiscountedPrice").replace(",", ".")) < float(details.get("Price").replace(",", ".")),
+                    "name": p.get("Name"),
+                    "price": float(details.get("Price").replace(",", ".")),
+                    "price_unit": "USD",  # Assuming this is constant
+                    "product_type": details.get("ProductType"),
+                    "quantity": int(details.get("Quantity")),
+                    "sample_size": None,  # Will get this from the XML later
+                    "series": details.get("Series"),
+                    "status": "Active",  # Assuming this is constant
+                    "fabric": None,  # Will get this from the XML later
+                    "model_measurements": None,  # Will get this from the XML later
+                    "product_measurements": None,  # Will get this from the XML later
+                    "createdAt": None,  # Will get this from the XML later
+                    "updatedAt": None   # Will get this from the XML later
                 }
-                self.products_list.append(product_data)  # Add the product data to the list
+                self.products_list.append(product_data)
+
             return self.products_list
-        except ET.ParseError:       # If there is an error parsing the XML file
-            print("Error parsing XML file")         # Print error message
+        except ET.ParseError:
+            print("Error parsing XML file")
             return None
     
 
