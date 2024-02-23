@@ -1,5 +1,8 @@
 import pymongo
 import xml.etree.ElementTree as ET
+import re
+import pprint
+
 
 class MongoDBClient:
     def __init__(self, host="localhost", port=27017):
@@ -43,7 +46,7 @@ class MongoDBClient:
     
     def print_products(self):
         for product in self.col.find():    # Find all the products in the collection
-            print(product["stock_code"])      # Print the product data
+            pprint.pprint(product)      # Print the product data
 
 class XMLParser:
     def __init__(self, file_path):  # Initialize the XMLParser class
@@ -60,6 +63,13 @@ class XMLParser:
             for p in self.products:
                 images = [img.get("Path") for img in p.findall("./Images/Image")]
                 details = {detail.get("Name"): detail.get("Value") for detail in p.findall("./ProductDetails/ProductDetail")}
+                
+
+                # Extracting specific details
+                description_cdata = p.find("Description").text
+                fabric_info = self.extract_info(description_cdata, "Kumaş Bilgisi")     # Extract the fabric information
+                model_measurements = self.extract_info(description_cdata, "Model Ölçüleri")     # Extract the model measurements
+                product_measurements = self.extract_info(description_cdata, "Ürün Ölçüleri")       # Extract the product measurements
 
                 product_data = {
                     "stock_code": p.get("ProductId"),
@@ -75,9 +85,9 @@ class XMLParser:
                     "sample_size": None,  # Will get this from the XML later
                     "series": details.get("Series"),
                     "status": "Active",  # Assuming this is constant
-                    "fabric": None,  # Will get this from the XML later
-                    "model_measurements": None,  # Will get this from the XML later
-                    "product_measurements": None,  # Will get this from the XML later
+                    "fabric": fabric_info,  # Will get this from the XML later
+                    "model_measurements": model_measurements,  # Will get this from the XML later
+                    "product_measurements": product_measurements,  # Will get this from the XML later
                     "createdAt": None,  # Will get this from the XML later
                     "updatedAt": None   # Will get this from the XML later
                 }
@@ -87,6 +97,12 @@ class XMLParser:
         except ET.ParseError:
             print("Error parsing XML file")
             return None
+        
+    def extract_info(self, text, info_type): # Extract the information from the description
+        pattern = rf"<strong>{info_type}:</strong>(.*?)<"   # Define the pattern to search for
+        match = re.search(pattern, text)    # Search for the pattern in the description
+        return match.group(1).strip() if match else None    # Return the extracted information if found, otherwise return None
+
     
 
 class ProductImporter:
