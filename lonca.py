@@ -42,6 +42,7 @@ def import_data_to_mongodb(collection, data):
         print(f"Error importing data: {e.details['writeErrors']}")
 
 def update_data_in_mongodb(collection, data):
+    import_datas = []
     for product_data in data:
         existing_product = collection.find_one({"ProductID": product_data["ProductID"]})   # Check if the product already exists in the collection
         if existing_product:    # If the product already exists
@@ -49,6 +50,11 @@ def update_data_in_mongodb(collection, data):
             print(f"Product {product_data['ProductID']} updated.")
         else:   # If the product does not exist
             print(f"Product {product_data['ProductID']} does not exist in the collection.")
+            import_datas.append(product_data)   # Add the product data to the list of products to import
+    
+    if import_datas:    # If there are new products to import
+        import_data_to_mongodb(collection, import_datas)    # Import the new products to the collection
+            
 
 def print_products_in_mongodb(collection):
     for product in collection.find():    # Find all the products in the collection
@@ -60,7 +66,6 @@ def main():
         products = parse_xml_file("lonca-sample.xml")
         if products:
             update_data_in_mongodb(col, products)
-            import_data_to_mongodb(col, products)
             print_products_in_mongodb(col)
         else:
             print("No products to import.")
