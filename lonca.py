@@ -7,7 +7,7 @@ def connect_to_mongodb():
         db = connection["lonca"]    # Connect to the lonca database
         col = db["products"]    # Connect to the products collection
         print("Connected to MongoDB and ready to import XML data.")
-        return col
+        return connection, col
     except pymongo.errors.ConnectionFailure:    # If connection to the database fails
         print("Could not connect to MongoDB") 
         return None
@@ -55,7 +55,7 @@ def print_products_in_mongodb(collection):
         print(product["ProductID"])      # Print the product data
 
 def main():
-    col = connect_to_mongodb()
+    connection, col = connect_to_mongodb()
     if col:
         products = parse_xml_file("lonca-sample.xml")
         if products:
@@ -66,7 +66,7 @@ def main():
             print("No products to import.")
     else:
         print("Could not connect to MongoDB")
-    disconnect_from_mongodb(col)
+    disconnect_from_mongodb(connection)
         
 if __name__ == "__main__":
     main()  # Run the main function
