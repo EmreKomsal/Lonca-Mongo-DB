@@ -23,7 +23,13 @@ try:
             "Details": {detail.attrib["Name"]: detail.attrib["Value"] for detail in p.findall("./ProductDetails/ProductDetail")},   # Get the product details
             "Description": p.find("./Description").text     # Get the product description
         }
-        products_list.append(product_data)  # Add the product data to the list
+        
+        existing_product = col.find_one({"ProductID": product_data["ProductID"]})   # Check if the product already exists in the collection
+        if existing_product:    # If the product already exists
+            col.update_one({"ProductID": product_data["ProductID"]}, {"$set": product_data})
+            print(f"Product {product_data['ProductID']} updated.")
+        else:   # If the product does not exist
+            products_list.append(product_data)  # Add the product data to the list
 
     # Insert data into the collection
     if products_list:   # If there are products in the list
@@ -34,7 +40,6 @@ except ET.ParseError:       # If there is an error parsing the XML file
 
 # Display the data in the collection 
 for product in col.find():    # Find all the products in the collection
-    print(product)      # Print the product data
-
+    print(product["ProductID"])      # Print the product data
 # Close the connection
 connection.close()     # Close the connection to the MongoDB server
