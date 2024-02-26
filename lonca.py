@@ -30,8 +30,8 @@ class MongoDBClient:
         try:
             for product in data:    # For each product in the data
                 
-                product["createdAt"] = datetime.now()
-                product["updatedAt"] = product["createdAt"]
+                product["createdAt"] = datetime.now().isoformat()   # Add the createdAt field
+                product["updatedAt"] = product["createdAt"]    # Add the updatedAt field
             self.col.insert_many(data)      # Insert the products into the collection
             print("Data imported successfully.")   # Print success message
         except pymongo.errors.BulkWriteError as e:
@@ -43,7 +43,7 @@ class MongoDBClient:
             for product_data in data:
                 existing_product = self.col.find_one({"stock_code": product_data["stock_code"]})   # Check if the product already exists in the collection
                 if existing_product:    # If the product already exists
-                    product_data["updatedAt"] = datetime.now()
+                    product_data["updatedAt"] = datetime.now().isoformat()   # Update the updatedAt field
                     self.col.update_one({"stock_code": product_data["stock_code"]}, {"$set": product_data})
                     print(f"Product {product_data['stock_code']} updated.")
                 else:   # If the product does not exist
