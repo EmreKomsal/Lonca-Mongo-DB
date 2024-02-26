@@ -29,7 +29,6 @@ class MongoDBClient:
     def import_data(self, data):
         try:
             for product in data:    # For each product in the data
-                
                 product["createdAt"] = datetime.now().isoformat()   # Add the createdAt field
                 product["updatedAt"] = product["createdAt"]    # Add the updatedAt field
             self.col.insert_many(data)      # Insert the products into the collection
@@ -43,13 +42,14 @@ class MongoDBClient:
             for product_data in data:
                 existing_product = self.col.find_one({"stock_code": product_data["stock_code"]})   # Check if the product already exists in the collection
                 if existing_product:    # If the product already exists
-                    product_data["updatedAt"] = datetime.now().isoformat()   # Update the updatedAt field
+                    product_data["updatedAt"] = datetime.now().isoformat()  # Update the updatedAt field
                     self.col.update_one({"stock_code": product_data["stock_code"]}, {"$set": product_data})
                     print(f"Product {product_data['stock_code']} updated.")
                 else:   # If the product does not exist
                     print(f"Product {product_data['stock_code']} does not exist in the collection.")
                     new_data.append(product_data)   # Add the new product to the new_data list
-            self.import_data([product_data])   # Import the new product to the collection
+            if new_data:    # If there are new products to import
+                self.import_data(new_data)   # Import the new product to the collection
         except pymongo.errors.BulkWriteError as e:
             print(f"Error updating data: {e.details['writeErrors']}")
     
@@ -135,7 +135,6 @@ class ProductImporter:
         self.products = XMLParser(self.file_path).parse()   # Parse the XML file and get the products
         if self.products:   # If there are products to import
             self.db_client.update_data(self.products)   # Update the products in the collection
-            self.db_client.print_products()     # Print the products in the collection
         else: 
             print("No products to import.")  # Print message if there are no products to import
             
@@ -144,6 +143,7 @@ def main():
     db_client.connect("lonca", "products")
     importer = ProductImporter("lonca-sample.xml", db_client)
     importer.import_products()
+    importer.db_client.print_products()
     db_client.disconnect()
 
 if __name__ == "__main__":  # If the script is run directly
