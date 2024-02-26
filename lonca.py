@@ -3,6 +3,8 @@ import xml.etree.ElementTree as ET
 import re
 import pprint
 import html
+from datetime import datetime
+
 
 class MongoDBClient:
     def __init__(self, host="localhost", port=27017):
@@ -26,6 +28,10 @@ class MongoDBClient:
         
     def import_data(self, data):
         try:
+            for product in data:    # For each product in the data
+                
+                product["createdAt"] = datetime.now()
+                product["updatedAt"] = product["createdAt"]
             self.col.insert_many(data)      # Insert the products into the collection
             print("Data imported successfully.")   # Print success message
         except pymongo.errors.BulkWriteError as e:
@@ -33,14 +39,17 @@ class MongoDBClient:
     
     def update_data(self, data):
         try:
+            new_data = []  # Initialize the new_data list
             for product_data in data:
                 existing_product = self.col.find_one({"stock_code": product_data["stock_code"]})   # Check if the product already exists in the collection
                 if existing_product:    # If the product already exists
+                    product_data["updatedAt"] = datetime.now()
                     self.col.update_one({"stock_code": product_data["stock_code"]}, {"$set": product_data})
                     print(f"Product {product_data['stock_code']} updated.")
                 else:   # If the product does not exist
                     print(f"Product {product_data['stock_code']} does not exist in the collection.")
-                    self.import_data([product_data])   # Import the new product to the collection
+                    new_data.append(product_data)   # Add the new product to the new_data list
+            self.import_data([product_data])   # Import the new product to the collection
         except pymongo.errors.BulkWriteError as e:
             print(f"Error updating data: {e.details['writeErrors']}")
     
